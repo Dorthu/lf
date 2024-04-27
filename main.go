@@ -12,7 +12,55 @@ import (
 	"github.com/go-logfmt/logfmt"
 )
 
-var reForm = regexp.MustCompile(`(^| )(\.[a-zA-Z0-9_]+)`)
+// reFilt if the regex used to parse filters; they should be formatted like this:
+//
+//  key=value
+//  ^ the key, which must be present in the logfmt record to match
+//     ^ the operator, one of =, !=, ~, and !~.  ~ are "contains"
+//      ^ the value to look for, based on the operator
+//
+// filters should be space-separated
+// TODO: include support for quoted values and escaped quotes
+var reFilt = regexp.MustCompile(`(?P<key>[a-zA-Z_-]+)(?P<operator>!?[=~])(?P<value>[a-zA-Z0-9-_]+)( |$)`)
+
+// reForm is the regex used to replace format arguments with templated placeholders.
+// For example, `[.time] .msg` would become `[{{.time}}] {{.msg}}`
+var reForm = regexp.MustCompile(`(^|[^a-zA-Z0-9_])(\.[a-zA-Z0-9_]+)`)
+
+// Filter represents a single parsed filter
+type Filter struct{
+	// Key must be present to be a match, positive or negative
+	Key string
+
+	// Operator for comparison.  Supported operators are =, !=, ~, and !~
+	Operator string
+
+	// Value must match according to the operator
+	Value string
+}
+
+// Match returns true if the filter matches a given record, and false otherwise
+func (f *Filter) Match(record map[string]string) (bool) {
+	val, ok := record[f.Key]
+
+	if !ok {
+		return false
+	}
+
+	switch f.Operator {
+	case "=":
+		return val == f.Value
+	case "!=":
+		return val != f.Value
+	case "~":
+		return strings.Contains(val, f.Value)
+	case "!~":
+		return !strings.Contains(val, f.Value)
+	default:
+		// this shouldn't happen
+		return false
+	}
+}
 
 // main is the entrypoint for the program
 func main() {
@@ -35,9 +83,21 @@ func main() {
 func splitArgs(args string) (string, string) {
 	splitInd := strings.LastIndex(args, "|")
 
+	var likelyFormat = regexp.MustCompile(`[\.]`)
+	var likelyFilter = regexp.MustCompile(`[=!~]`)
+
 	if splitInd == -1 {
-		// TODO - assume it's all format for now
-		return "", args
+		if likelyFormat.MatchString(args) && !likelyFilter.MatchString(args) {
+			// looks like a format string
+			return "", args
+		} else if likelyFilter.MatchString(args) && !likelyFormat.MatchString(args) {
+			// looks like a filter
+			filter := strings.Replace(args, "|", "", 0)
+			return filter, ""
+		} else {
+			// just guess - it's a format probably
+			return "", args
+		}
 	}
 
 	filter := args[:splitInd]
@@ -51,15 +111,34 @@ func splitArgs(args string) (string, string) {
 
 // readFilter parses a filter input and returns a map of key/value pairs
 // we're looking for
-func readFilter(filter string) (map[string]string) {
+func readFilter(filter string) ([]Filter) {
 	if len(filter) < 1 {
 		return nil
 	}
 
-	return parseLine(filter)
+	var ret []Filter
+
+	matchList := reFilt.FindAllStringSubmatch(filter, -1)
+
+	if matchList == nil {
+		return nil
+	}
+
+	for _, matches := range matchList {
+		ret = append(
+			ret,
+			Filter{
+				Key: matches[1],
+				Operator: matches[2],
+				Value: matches[3],
+			},
+		)
+	}
+
+	return ret
 }
 
-// readFormat reads the formta string from os.Args and returns a template
+// readFormat reads the incoming format string and returns a template
 // that outputs in that format
 func readFormat(format string) (*template.Template) {
 	if format == "" {
@@ -79,7 +158,7 @@ func readFormat(format string) (*template.Template) {
 
 // scan is the main loop of the program, scanning os.Stdin until it ends and
 // parsing/printing matching lines
-func scan(filter map[string]string, format *template.Template) {
+func scan(filter []Filter, format *template.Template) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for scanner.Scan() {
@@ -88,7 +167,7 @@ func scan(filter map[string]string, format *template.Template) {
 
 		if len(parsed) > 0 {
 			if (!matchesFilter(filter, parsed)) {
-				break
+				continue
 			}
 
 			if (format != nil ) {
@@ -107,18 +186,14 @@ func scan(filter map[string]string, format *template.Template) {
 
 // matchesFilter returns true if either the filter is empty, or if all keys
 // present in the filter are present in the value _and_ all values match
-func matchesFilter(filter map[string]string, value map[string]string) (bool) {
+func matchesFilter(filter []Filter, value map[string]string) (bool) {
 	if len(filter) == 0 {
 		return true
 	}
 
-	for k, v := range filter {
-		if val, ok := value[k]; !ok {
+	for _, f := range filter {
+		if !f.Match(value) {
 			return false
-		} else {
-			if v != val {
-				return false
-			}
 		}
 	}
 
@@ -150,8 +225,11 @@ func formatLine(data map[string]string, format *template.Template) {
 	}
 }
 
-// dump writes the entire parsed record
-// TODO - format output better by default
+// dump writes the full set of key/value pairs back out as logfmt
 func dump(data map[string]string) {
-	fmt.Printf("%v\n", data)
+	enc := logfmt.NewEncoder(os.Stdout)
+	for k, v := range data {
+		enc.EncodeKeyval(k, v)
+	}
+	enc.EndRecord()
 }
