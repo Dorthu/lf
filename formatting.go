@@ -16,7 +16,7 @@ var reForm = regexp.MustCompile(`(^|[^a-zA-Z0-9_])(\.[a-zA-Z0-9_]+)`)
 
 // readFormat reads the incoming format string and returns a template
 // that outputs in that format
-func readFormat(format string) (*template.Template) {
+func readFormat(format string) *template.Template {
 	if format == "" {
 		return nil
 	}

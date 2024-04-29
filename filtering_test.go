@@ -1,17 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"testing"
-	"slices"
 	"cmp"
+	"fmt"
+	"slices"
+	"testing"
 )
 
 func TestMatchEquals(t *testing.T) {
 	filter := Filter{
-		Key: "test",
+		Key:      "test",
 		Operator: "=",
-		Value: "works",
+		Value:    "works",
 	}
 
 	if !filter.Match(map[string]string{
@@ -21,7 +21,7 @@ func TestMatchEquals(t *testing.T) {
 	}
 
 	if !filter.Match(map[string]string{
-		"test": "works",
+		"test":   "works",
 		"second": "example",
 	}) {
 		t.Error("Failed positive match with two keys!")
@@ -29,7 +29,7 @@ func TestMatchEquals(t *testing.T) {
 
 	if filter.Match(map[string]string{
 		"unrelated": "keys",
-		"don't": "match",
+		"don't":     "match",
 	}) {
 		t.Error("Failed simple negative case")
 	}
@@ -49,9 +49,9 @@ func TestMatchEquals(t *testing.T) {
 
 func TestMatchNotEquals(t *testing.T) {
 	filter := Filter{
-		Key: "test",
+		Key:      "test",
 		Operator: "!=",
-		Value: "works",
+		Value:    "works",
 	}
 
 	if filter.Match(map[string]string{
@@ -61,7 +61,7 @@ func TestMatchNotEquals(t *testing.T) {
 	}
 
 	if filter.Match(map[string]string{
-		"test": "works",
+		"test":   "works",
 		"second": "example",
 	}) {
 		t.Error("Failed positive match with two keys!")
@@ -69,7 +69,7 @@ func TestMatchNotEquals(t *testing.T) {
 
 	if filter.Match(map[string]string{
 		"unrelated": "keys",
-		"don't": "match",
+		"don't":     "match",
 	}) {
 		t.Error("Missing key does not match")
 	}
@@ -89,9 +89,9 @@ func TestMatchNotEquals(t *testing.T) {
 
 func TestMatchLike(t *testing.T) {
 	filter := Filter{
-		Key: "test",
+		Key:      "test",
 		Operator: "~",
-		Value: "ork",
+		Value:    "ork",
 	}
 
 	if !filter.Match(map[string]string{
@@ -101,7 +101,7 @@ func TestMatchLike(t *testing.T) {
 	}
 
 	if !filter.Match(map[string]string{
-		"test": "works",
+		"test":   "works",
 		"second": "example",
 	}) {
 		t.Error("Failed positive match with two keys!")
@@ -109,7 +109,7 @@ func TestMatchLike(t *testing.T) {
 
 	if filter.Match(map[string]string{
 		"unrelated": "keys",
-		"don't": "match",
+		"don't":     "match",
 	}) {
 		t.Error("Missing key does not match")
 	}
@@ -129,9 +129,9 @@ func TestMatchLike(t *testing.T) {
 
 func TestMatchNotLike(t *testing.T) {
 	filter := Filter{
-		Key: "test",
+		Key:      "test",
 		Operator: "!~",
-		Value: "ork",
+		Value:    "ork",
 	}
 
 	if filter.Match(map[string]string{
@@ -141,7 +141,7 @@ func TestMatchNotLike(t *testing.T) {
 	}
 
 	if filter.Match(map[string]string{
-		"test": "works",
+		"test":   "works",
 		"second": "example",
 	}) {
 		t.Error("Failed positive match with two keys!")
@@ -149,7 +149,7 @@ func TestMatchNotLike(t *testing.T) {
 
 	if filter.Match(map[string]string{
 		"unrelated": "keys",
-		"don't": "match",
+		"don't":     "match",
 	}) {
 		t.Error("Missing key does not match")
 	}
@@ -173,11 +173,11 @@ func compareFilters(t *testing.T, expected, actual []Filter) {
 	}
 
 	// sort both as order doesn't matter
-	slices.SortFunc(actual, func(a, b Filter) (int) {
+	slices.SortFunc(actual, func(a, b Filter) int {
 		return cmp.Compare(a.Key, b.Key)
 	})
 
-	slices.SortFunc(expected, func(a, b Filter) (int) {
+	slices.SortFunc(expected, func(a, b Filter) int {
 		return cmp.Compare(a.Key, b.Key)
 	})
 
@@ -196,9 +196,9 @@ func TestReadFilter(t *testing.T) {
 			readFilter(fmt.Sprintf(`key%svalue`, op)),
 			[]Filter{
 				{
-					Key: "key",
+					Key:      "key",
 					Operator: op,
-					Value: "value",
+					Value:    "value",
 				},
 			},
 		)
@@ -210,14 +210,14 @@ func TestReadFilter(t *testing.T) {
 		readFilter(`key=value other~ex`),
 		[]Filter{
 			{
-				Key: "key",
+				Key:      "key",
 				Operator: "=",
-				Value: "value",
+				Value:    "value",
 			},
 			{
-				Key: "other",
+				Key:      "other",
 				Operator: "~",
-				Value: "ex",
+				Value:    "ex",
 			},
 		},
 	)
@@ -228,19 +228,19 @@ func TestReadFilter(t *testing.T) {
 		readFilter(`key=value other="longer value" last~value`),
 		[]Filter{
 			{
-				Key: "key",
+				Key:      "key",
 				Operator: "=",
-				Value: "value",
+				Value:    "value",
 			},
 			{
-				Key: "other",
+				Key:      "other",
 				Operator: "=",
-				Value: "longer value",
+				Value:    "longer value",
 			},
 			{
-				Key: "last",
+				Key:      "last",
 				Operator: "~",
-				Value: "value",
+				Value:    "value",
 			},
 		},
 	)
@@ -251,19 +251,19 @@ func TestMatchesFilter(t *testing.T) {
 	if !matchesFilter(
 		[]Filter{
 			{
-				Key: "key",
+				Key:      "key",
 				Operator: "=",
-				Value: "value",
+				Value:    "value",
 			},
 			{
-				Key: "other",
+				Key:      "other",
 				Operator: "~",
-				Value: "al",
+				Value:    "al",
 			},
 		},
 		map[string]string{
-			"key": "value",
-			"other": "value",
+			"key":        "value",
+			"other":      "value",
 			"irrelevant": "value",
 		},
 	) {
@@ -274,14 +274,14 @@ func TestMatchesFilter(t *testing.T) {
 	if matchesFilter(
 		[]Filter{
 			{
-				Key: "key",
+				Key:      "key",
 				Operator: "=",
-				Value: "value",
+				Value:    "value",
 			},
 			{
-				Key: "other",
+				Key:      "other",
 				Operator: "~",
-				Value: "al",
+				Value:    "al",
 			},
 		},
 		map[string]string{

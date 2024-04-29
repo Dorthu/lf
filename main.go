@@ -2,16 +2,14 @@ package main
 
 import (
 	"bufio"
-	"os"
 	"fmt"
-	"strings"
+	"os"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/go-logfmt/logfmt"
 )
-
-
 
 // main is the entrypoint for the program
 func main() {
@@ -60,7 +58,6 @@ func splitArgs(args string) (string, string) {
 	return filter, format
 }
 
-
 // scan is the main loop of the program, scanning os.Stdin until it ends and
 // parsing/printing matching lines
 func scan(filter []Filter, format *template.Template) {
@@ -71,11 +68,11 @@ func scan(filter []Filter, format *template.Template) {
 		parsed := parseLine(text)
 
 		if len(parsed) > 0 {
-			if (!matchesFilter(filter, parsed)) {
+			if !matchesFilter(filter, parsed) {
 				continue
 			}
 
-			if (format != nil ) {
+			if format != nil {
 				formatLine(parsed, format)
 			} else {
 				// if no format was given, print the whole line
@@ -91,11 +88,11 @@ func scan(filter []Filter, format *template.Template) {
 
 // parseLine parses a single line of logfmt into a map of key/value pairs that
 // can be processed for matches and output formatting
-func parseLine(line string) (map[string]string) {
-	decoder := logfmt.NewDecoder(strings.NewReader(line))	
+func parseLine(line string) map[string]string {
+	decoder := logfmt.NewDecoder(strings.NewReader(line))
 	decoder.ScanRecord()
 	data := map[string]string{}
-	
+
 	for decoder.ScanKeyval() {
 		key := string(decoder.Key())
 		val := string(decoder.Value())
@@ -104,4 +101,3 @@ func parseLine(line string) (map[string]string) {
 
 	return data
 }
-
