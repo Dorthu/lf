@@ -20,8 +20,17 @@ import (
 //      ^ the value to look for, based on the operator
 //
 // filters should be space-separated
-// TODO: include support for quoted values and escaped quotes
-var reFilt = regexp.MustCompile(`(?P<key>[a-zA-Z_-]+)(?P<operator>!?[=~])(?P<value>[a-zA-Z0-9-_]+)( |$)`)
+var reFilt = regexp.MustCompile(
+	// match the key; must be alphanumeric with underscores
+	`(?P<key>[a-zA-Z_-]+)`+
+	// match the operator; = or ~ with optional ! prefix
+	`(?P<operator>!?[=~])`+
+	// match the value; either a quoted string with escaped quotes, or an unquoted string
+	// with no spaces
+	`(?P<value>"(\\"|[^"])+"|[^"][^ ]+)`+
+	// delimter - a space or end of line
+	`( |$)`,
+)
 
 // reForm is the regex used to replace format arguments with templated placeholders.
 // For example, `[.time] .msg` would become `[{{.time}}] {{.msg}}`
@@ -125,12 +134,18 @@ func readFilter(filter string) ([]Filter) {
 	}
 
 	for _, matches := range matchList {
+		value := matches[3]
+		if value[0] == '"'{
+			// if we're a quoted value, drop the quotes
+			value = value[1:len(value)-1]
+		}
+
 		ret = append(
 			ret,
 			Filter{
 				Key: matches[1],
 				Operator: matches[2],
-				Value: matches[3],
+				Value: value,
 			},
 		)
 	}
