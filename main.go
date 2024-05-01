@@ -43,9 +43,14 @@ func splitArgs(args string) (string, string) {
 			// looks like a filter
 			filter := strings.Replace(args, "|", "", 0)
 			return filter, ""
-		} else {
+		} else if args != "" {
 			// just guess - it's a format probably
+			os.Stderr.WriteString("WARN: Ambiguous input; assuming format not filter\n")
 			return "", args
+		} else {
+			// no format or filter given
+			os.Stderr.WriteString("WARN: No filter or format given\n")
+			return "", ""
 		}
 	}
 

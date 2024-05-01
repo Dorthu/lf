@@ -130,7 +130,7 @@ func TestDump(t *testing.T) {
 		},
 	); err != nil {
 		t.Errorf("Error running formatLine: %v", err)
-	} else if res != `key=value msg="it worked"`+"\n" {
-		t.Errorf("formatLine got unexpected result: '%s'", res)
+	} else if res != `msg="it worked" key=value`+"\n" {
+		t.Errorf("dump got unexpected result: '%s'", res)
 	}
 }
