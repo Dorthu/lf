@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"text/template"
 
 	"github.com/go-logfmt/logfmt"
@@ -44,7 +45,17 @@ func formatLine(data map[string]string, format *template.Template) {
 // dump writes the full set of key/value pairs back out as logfmt
 func dump(data map[string]string) {
 	enc := logfmt.NewEncoder(os.Stdout)
-	for k, v := range data {
+	keys := []string{}
+
+	// first, sort the keys
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// then encode them in sorted order
+	for _, k := range keys {
+		v, _ := data[k]
 		enc.EncodeKeyval(k, v)
 	}
 	enc.EndRecord()
