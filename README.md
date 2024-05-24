@@ -41,6 +41,8 @@ one of four allowed operators:
 | `!=` | Value must not match exactly |
 | `~` | Value must be present in record |
 | `!~` | Value must not be present in record |
+| `+` | The key must be present.  Takes no argument |
+| `-` | The key must be absent.  Takes no argument |
 
 For example, for this input record:
 
@@ -53,12 +55,14 @@ The following filters match:
 ```
 id=12345
 id!=4567
+id+
 msg~worked
 msg!~failed
+absent-
 ```
 
-The key must always be present to a match to occur; none of the following filters match
-the above record:
+The key must always be present to a match to occur unless matching on key
+absence; none of the following filters match the above record:
 
 ```
 tag=test
@@ -97,3 +101,5 @@ is a filter (additional `|` characters are redundant).
 
 If `lf` receives no `|` in its args, it uses hueristics to decide if it was given a
 filter or a format.  When in doubt, the args are assumed to be a format.
+
+To disambiguate, include a `|` character - filters/formats are not otherwise required.

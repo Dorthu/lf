@@ -204,10 +204,25 @@ func TestReadFilter(t *testing.T) {
 		)
 	}
 
+	// no-op parsing
+	for _, op := range []string{"+", "-"} {
+		compareFilters(
+			t,
+			readFilter(fmt.Sprintf("key%s", op)),
+			[]Filter{
+				{
+					Key:      "key",
+					Operator: op,
+					Value:    "",
+				},
+			},
+		)
+	}
+
 	// multiple filters
 	compareFilters(
 		t,
-		readFilter(`key=value other~ex`),
+		readFilter(`key=value other~ex absent- present+`),
 		[]Filter{
 			{
 				Key:      "key",
@@ -218,6 +233,16 @@ func TestReadFilter(t *testing.T) {
 				Key:      "other",
 				Operator: "~",
 				Value:    "ex",
+			},
+			{
+				Key:      "absent",
+				Operator: "-",
+				Value:    "",
+			},
+			{
+				Key:      "present",
+				Operator: "+",
+				Value:    "",
 			},
 		},
 	)
@@ -289,5 +314,67 @@ func TestMatchesFilter(t *testing.T) {
 		},
 	) {
 		t.Error("Failed negative case!")
+	}
+
+	// present match
+	if !matchesFilter(
+		[]Filter{
+			{
+				Key:      "key",
+				Operator: "+",
+			},
+		},
+		map[string]string{
+			"key":        "present",
+			"irrelevant": "key",
+		},
+	) {
+		t.Error("Presence filter doesn't match as expected")
+	}
+
+	if matchesFilter(
+		[]Filter{
+			{
+				Key:      "key",
+				Operator: "+",
+			},
+		},
+		map[string]string{
+			"other-key":  "present",
+			"irrelevant": "key",
+		},
+	) {
+		t.Error("Presence filter doesn't not match as expected")
+	}
+
+	// absent match
+	if !matchesFilter(
+		[]Filter{
+			{
+				Key:      "key",
+				Operator: "-",
+			},
+		},
+		map[string]string{
+			"other-key":  "present",
+			"irrelevant": "key",
+		},
+	) {
+		t.Error("Absence filter doesn't match as expected")
+	}
+
+	if matchesFilter(
+		[]Filter{
+			{
+				Key:      "key",
+				Operator: "-",
+			},
+		},
+		map[string]string{
+			"key":        "present",
+			"irrelevant": "key",
+		},
+	) {
+		t.Error("Absence filter doesn't not match as expected")
 	}
 }

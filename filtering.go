@@ -16,11 +16,19 @@ import (
 var reFilt = regexp.MustCompile(
 	// match the key; must be alphanumeric with underscores
 	`(?P<key>[a-zA-Z_-]+)` +
-		// match the operator; = or ~ with optional ! prefix
+		// match either an operator with an argument or one without
+		`(` +
+		// no-argument operators
+		`(?P<operator>[+-])` +
+		// or
+		`|` +
+		// match operators with an argument; = or ~ with optional ! prefix
 		`(?P<operator>!?[=~])` +
 		// match the value; either a quoted string with escaped quotes, or an unquoted string
 		// with no spaces
 		`(?P<value>"(\\"|[^"])+"|[^"][^ ]+)` +
+		// conditional bit
+		`)` +
 		// delimter - a space or end of line
 		`( |$)`,
 )
@@ -42,17 +50,25 @@ func (f *Filter) Match(record map[string]string) bool {
 	val, ok := record[f.Key]
 
 	if !ok {
-		return false
+		// - takes no value and matches if the key isn't present
+		return f.Operator == "-"
 	}
 
 	switch f.Operator {
+	case "+":
+		// + takes no value and matches if the key is present
+		return true
 	case "=":
+		// value must match exactly
 		return val == f.Value
 	case "!=":
+		// value must not match exactly
 		return val != f.Value
 	case "~":
+		// value must contain the filter value
 		return strings.Contains(val, f.Value)
 	case "!~":
+		// value must not contain the filter value
 		return !strings.Contains(val, f.Value)
 	default:
 		// this shouldn't happen
@@ -76,8 +92,14 @@ func readFilter(filter string) []Filter {
 	}
 
 	for _, matches := range matchList {
-		value := matches[3]
-		if value[0] == '"' {
+		operator := matches[4]
+		if len(operator) < 1 {
+			// we matched the no-operator group
+			operator = matches[3]
+		}
+
+		value := matches[5]
+		if len(value) > 0 && value[0] == '"' {
 			// if we're a quoted value, drop the quotes
 			value = value[1 : len(value)-1]
 		}
@@ -86,7 +108,7 @@ func readFilter(filter string) []Filter {
 			ret,
 			Filter{
 				Key:      matches[1],
-				Operator: matches[2],
+				Operator: operator,
 				Value:    value,
 			},
 		)
